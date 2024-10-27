@@ -11,14 +11,10 @@ function Chat({ socket, username, room, role }) {
         room: room,
         author: `${username} (${role})`,
         message: currentMessage,
-        time:
-          new Date(Date.now()).getHours() +
-          ":" +
-          new Date(Date.now()).getMinutes(),
+        time: new Date().toLocaleTimeString('en-US', { hour12: false }),
       };
 
       await socket.emit("send_message", messageData);
-      setMessageList((list) => [...list, messageData]);
       setCurrentMessage("");
     }
   };
@@ -27,6 +23,15 @@ function Chat({ socket, username, room, role }) {
     socket.on("receive_message", (data) => {
       setMessageList((list) => [...list, data]);
     });
+
+    socket.on("message_sent", (data) => {
+      setMessageList((list) => [...list, data]);
+    });
+
+    return () => {
+      socket.off("receive_message");
+      socket.off("message_sent");
+    };
   }, [socket]);
   
   
