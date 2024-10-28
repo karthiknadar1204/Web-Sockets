@@ -92,8 +92,13 @@ function Chat({ socket, username, room, role }) {
       setUploading(true);
       try {
         let fileUrl = null;
+        let fileName = null;
+        let fileType = null;
+
         if (selectedFile) {
           fileUrl = await uploadFile(selectedFile);
+          fileName = selectedFile.name;
+          fileType = selectedFile.type;
         }
 
         const messageData = {
@@ -103,8 +108,8 @@ function Chat({ socket, username, room, role }) {
           time: new Date().toLocaleTimeString('en-US', { hour12: false }),
           role: role,
           fileUrl: fileUrl,
-          fileName: selectedFile?.name || null,
-          fileType: selectedFile?.type || null
+          fileName: fileName,
+          fileType: fileType
         };
 
         await socket.emit("send_message", messageData);

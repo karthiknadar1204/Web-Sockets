@@ -107,7 +107,10 @@ io.on('connection', (socket) => {
                 message: data.message,
                 time: data.time,
                 role: data.role,
-                status: 'sent'
+                status: 'sent',
+                fileUrl: data.fileUrl,
+                fileName: data.fileName,
+                fileType: data.fileType
             });
 
             console.log('Saved message:', message);
