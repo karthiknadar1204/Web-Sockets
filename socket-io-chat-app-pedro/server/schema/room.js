@@ -1,9 +1,8 @@
 const mongoose = require('mongoose');
 
-// Room Schema to track room status and participants
 const roomSchema = new mongoose.Schema({
     roomId: {
-        type: String,  // Change to String to match frontend input
+        type: String, 
         required: true,
         unique: true
     },
