@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
     room: {
-        type: String,  // Change to String since room IDs come as strings from the frontend
+        type: String,
         required: true,
         ref: 'Room'
     },
@@ -17,7 +17,7 @@ const messageSchema = new mongoose.Schema({
     },
     message: {
         type: String,
-        required: true
+        required: false
     },
     time: {
         type: String,
@@ -27,12 +27,23 @@ const messageSchema = new mongoose.Schema({
         type: String,
         enum: ['sent', 'delivered', 'read'],
         default: 'sent'
+    },
+    fileUrl: {
+        type: String,
+        required: false
+    },
+    fileName: {
+        type: String,
+        required: false
+    },
+    fileType: {
+        type: String,
+        required: false
     }
 }, {
     timestamps: true
 });
 
-// Add index for better query performance
 messageSchema.index({ room: 1, createdAt: 1 });
 
 const Message = mongoose.model('Message', messageSchema);

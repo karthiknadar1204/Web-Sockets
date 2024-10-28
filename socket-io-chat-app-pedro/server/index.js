@@ -10,7 +10,6 @@ require('dotenv').config();
 app.use(cors())
 const server = http.createServer(app);
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -35,9 +34,8 @@ io.on('connection', (socket) => {
         socket.join(room);
 
         try {
-            // Find or create room in database
             let roomDoc = await Room.findOne({ roomId: room });
-            console.log('Found room:', roomDoc); // Debug log
+            console.log('Found room:', roomDoc);
 
             if (!roomDoc) {
                 roomDoc = await Room.create({
@@ -49,9 +47,8 @@ io.on('connection', (socket) => {
                         role
                     }]
                 });
-                console.log('Created new room:', roomDoc); // Debug log
+                console.log('Created new room:', roomDoc);
             } else {
-                // Update room with new participant
                 if (role === 'advocate' && roomDoc.hasAdvocate) {
                     socket.emit('room_status', { hasAdvocate: true });
                     return;
@@ -69,15 +66,13 @@ io.on('connection', (socket) => {
                 await roomDoc.save();
             }
 
-            // Fetch previous messages with proper sorting and field selection
             const messages = await Message.find({ room: room })
                 .select('room author message time role status createdAt')
                 .sort({ createdAt: 1 })
                 .lean();
             
-            console.log('Found messages for room:', room, messages); // Log entire messages array
+            console.log('Found messages for room:', room, messages);
 
-            // Transform messages to match the expected format
             const formattedMessages = messages.map(msg => ({
                 room: msg.room,
                 author: msg.author,
@@ -87,12 +82,10 @@ io.on('connection', (socket) => {
                 status: msg.status
             }));
 
-            // Emit previous messages to the newly joined user
             socket.emit('previous_messages', formattedMessages);
             
             socket.emit('room_status', { hasAdvocate: roomDoc.hasAdvocate });
             
-            // Notify other users in the room about the new join
             socket.to(room).emit('user_joined', {
                 username,
                 role,
@@ -108,9 +101,8 @@ io.on('connection', (socket) => {
 
     socket.on('send_message', async (data) => {
         try {
-            // Save message to database
             const message = await Message.create({
-                room: data.room.toString(), // Ensure room is stored as string
+                room: data.room.toString(),
                 author: data.author,
                 message: data.message,
                 time: data.time,
@@ -118,7 +110,7 @@ io.on('connection', (socket) => {
                 status: 'sent'
             });
 
-            console.log('Saved message:', message); // Debug log
+            console.log('Saved message:', message);
 
             socket.to(data.room).emit('receive_message', message);
             socket.emit('message_sent', message);
@@ -130,7 +122,6 @@ io.on('connection', (socket) => {
 
     socket.on("disconnect", async () => {
         try {
-            // Update room when user disconnects
             const rooms = await Room.find({ 'participants.userId': socket.id });
             for (const room of rooms) {
                 const participant = room.participants.find(p => p.userId === socket.id);
