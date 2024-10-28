@@ -23,9 +23,16 @@ function App() {
     });
   }, [role]);
 
-  const joinRoom = () => { 
-    if (username !== "" && room !== "" && role !== "") {
-      socket.emit("join_room", { room, role });
+  const joinRoom = () => {
+    if (username.trim() !== "" && room.trim() !== "" && role !== "") {
+      const roomNumber = room.trim();
+      socket.emit("join_room", { 
+        room: roomNumber,
+        role, 
+        username: username.trim() 
+      });
+    } else {
+      setError("Please fill in all fields");
     }
   };
 

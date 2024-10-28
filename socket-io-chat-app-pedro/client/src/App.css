@@ -189,3 +189,13 @@
   .hide {
     opacity: 0 !important;
   }
+  
+  #system {
+    justify-content: center;
+  }
+  
+  #system .message-content {
+    background-color: #e1e1e1;
+    color: #666;
+    font-style: italic;
+  }

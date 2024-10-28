@@ -3,8 +3,20 @@ const app = express();
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const mongoose = require('mongoose');
+const { Message } = require('./schema/message');
+const { Room } = require('./schema/room');
+require('dotenv').config();
 app.use(cors())
 const server = http.createServer(app);
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log('Connected to MongoDB'))
+.catch(err => console.error('Could not connect to MongoDB:', err));
 
 const io = new Server(server, {
     cors: {
@@ -18,36 +30,120 @@ const rooms = new Map();
 io.on('connection', (socket) => {
     console.log('User connected to ', socket.id);
 
-    socket.on("join_room", (data) => {
-        const { room, role } = data;
+    socket.on("join_room", async (data) => {
+        const { room, role, username } = data;
         socket.join(room);
 
-        if (!rooms.has(room)) {
-            rooms.set(room, { hasAdvocate: false });
-        }
+        try {
+            // Find or create room in database
+            let roomDoc = await Room.findOne({ roomId: room });
+            console.log('Found room:', roomDoc); // Debug log
 
-        const roomData = rooms.get(room);
-
-        if (role === 'advocate') {
-            if (roomData.hasAdvocate) {
-                socket.emit('room_status', { hasAdvocate: true });
-                return;
+            if (!roomDoc) {
+                roomDoc = await Room.create({
+                    roomId: room,
+                    hasAdvocate: role === 'advocate',
+                    participants: [{
+                        userId: socket.id,
+                        username,
+                        role
+                    }]
+                });
+                console.log('Created new room:', roomDoc); // Debug log
+            } else {
+                // Update room with new participant
+                if (role === 'advocate' && roomDoc.hasAdvocate) {
+                    socket.emit('room_status', { hasAdvocate: true });
+                    return;
+                }
+                
+                if (role === 'advocate') {
+                    roomDoc.hasAdvocate = true;
+                }
+                
+                roomDoc.participants.push({
+                    userId: socket.id,
+                    username,
+                    role
+                });
+                await roomDoc.save();
             }
-            roomData.hasAdvocate = true;
+
+            // Fetch previous messages with proper sorting and field selection
+            const messages = await Message.find({ room: room })
+                .select('room author message time role status createdAt')
+                .sort({ createdAt: 1 })
+                .lean();
+            
+            console.log('Found messages for room:', room, messages); // Log entire messages array
+
+            // Transform messages to match the expected format
+            const formattedMessages = messages.map(msg => ({
+                room: msg.room,
+                author: msg.author,
+                message: msg.message,
+                time: msg.time,
+                role: msg.role,
+                status: msg.status
+            }));
+
+            // Emit previous messages to the newly joined user
+            socket.emit('previous_messages', formattedMessages);
+            
+            socket.emit('room_status', { hasAdvocate: roomDoc.hasAdvocate });
+            
+            // Notify other users in the room about the new join
+            socket.to(room).emit('user_joined', {
+                username,
+                role,
+                message: `${username} has joined the room as ${role}`
+            });
+
+            console.log(`User ${username} with id ${socket.id} joined room ${room} as ${role}`);
+        } catch (error) {
+            console.error('Error joining room:', error);
+            socket.emit('error', { message: 'Error joining room' });
         }
-
-        socket.emit('room_status', { hasAdvocate: roomData.hasAdvocate });
-        console.log(`User with id ${socket.id} joined the room ${room} as ${role}`);
     })
 
-    socket.on('send_message', (data) => {
-        console.log(data);
-        socket.to(data.room).emit('receive_message', data);
-        socket.emit('message_sent', data);
+    socket.on('send_message', async (data) => {
+        try {
+            // Save message to database
+            const message = await Message.create({
+                room: data.room.toString(), // Ensure room is stored as string
+                author: data.author,
+                message: data.message,
+                time: data.time,
+                role: data.role,
+                status: 'sent'
+            });
+
+            console.log('Saved message:', message); // Debug log
+
+            socket.to(data.room).emit('receive_message', message);
+            socket.emit('message_sent', message);
+        } catch (error) {
+            console.error('Error saving message:', error);
+            socket.emit('error', { message: 'Error sending message' });
+        }
     })
 
-    socket.on("disconnect", () => {
-        console.log('User disconnected', socket.id);
+    socket.on("disconnect", async () => {
+        try {
+            // Update room when user disconnects
+            const rooms = await Room.find({ 'participants.userId': socket.id });
+            for (const room of rooms) {
+                const participant = room.participants.find(p => p.userId === socket.id);
+                if (participant?.role === 'advocate') {
+                    room.hasAdvocate = false;
+                }
+                room.participants = room.participants.filter(p => p.userId !== socket.id);
+                await room.save();
+            }
+            console.log('User disconnected', socket.id);
+        } catch (error) {
+            console.error('Error handling disconnect:', error);
+        }
     })
 })
 
