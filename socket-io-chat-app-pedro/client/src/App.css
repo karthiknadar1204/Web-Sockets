@@ -100,45 +100,49 @@
     width: auto;
     height: auto;
     min-height: 40px;
-    max-width: 120px;
+    max-width: 200px;
     background-color: #43a047;
     border-radius: 5px;
     color: white;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     margin-right: 5px;
     margin-left: 5px;
-    padding-right: 5px;
-    padding-left: 5px;
+    padding: 8px;
     overflow-wrap: break-word;
     word-break: break-word;
   }
   
   #you {
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
   
   #you .message-content {
-    justify-content: flex-start;
-  }
-  
-  #you .message-meta {
-    justify-content: flex-start;
-    margin-left: 5px;
+    background-color: #43a047;
   }
   
   #other {
-    justify-content: flex-end;
+    justify-content: flex-start;
   }
   
   #other .message-content {
-    justify-content: flex-end;
     background-color: cornflowerblue;
   }
   
-  #other .message-meta {
+  .message-meta {
+    display: flex;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+  
+  #you .message-meta {
     justify-content: flex-end;
     margin-right: 5px;
+  }
+  
+  #other .message-meta {
+    justify-content: flex-start;
+    margin-left: 5px;
   }
   
   .message-meta #author {
