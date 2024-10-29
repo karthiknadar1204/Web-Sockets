@@ -143,11 +143,17 @@ function Chat({ socket, username, room, role }) {
             {messageContent.fileUrl && (
               <div className="file-attachment">
                 {messageContent.fileType?.startsWith('image/') ? (
-                  <img 
-                    src={messageContent.fileUrl} 
-                    alt="attachment" 
-                    className="image-preview"
-                  />
+                  <a 
+                    href={messageContent.fileUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    <img 
+                      src={messageContent.fileUrl} 
+                      alt="attachment" 
+                      className="image-preview"
+                    />
+                  </a>
                 ) : (
                   <a 
                     href={messageContent.fileUrl} 
@@ -180,6 +186,37 @@ function Chat({ socket, username, room, role }) {
           {messageList.map((messageContent, index) => 
             renderMessage(messageContent, index)
           )}
+          {selectedFile && (
+            <div className="message selected-file-preview" id="you">
+              <div>
+                <div className="message-content">
+                  <p>Selected file to send:</p>
+                  {selectedFile.type.startsWith('image/') ? (
+                    <img 
+                      src={URL.createObjectURL(selectedFile)} 
+                      alt="preview" 
+                      className="image-preview"
+                    />
+                  ) : (
+                    <div className="file-preview">
+                      📎 {selectedFile.name}
+                      <button 
+                        onClick={() => {
+                          setSelectedFile(null);
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                          }
+                        }}
+                        className="remove-file"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </ScrollToBottom>
       </div>
       <div className="chat-footer">
@@ -211,21 +248,11 @@ function Chat({ socket, username, room, role }) {
         <button 
           onClick={sendMessage}
           disabled={uploading}
+          className={uploading ? 'loading' : ''}
         >
-          {uploading ? '⌛' : '➤'}
+          {uploading ? '🔄' : '➤'}
         </button>
       </div>
-      {selectedFile && (
-        <div className="selected-file">
-          📎 {selectedFile.name}
-          <button onClick={() => {
-            setSelectedFile(null);
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-          }}>✕</button>
-        </div>
-      )}
     </div>
   );
 }
