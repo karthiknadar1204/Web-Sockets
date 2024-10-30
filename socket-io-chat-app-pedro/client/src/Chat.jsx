@@ -12,6 +12,20 @@ function Chat({ socket, username, room, role }) {
   const storage = getStorage(app);
 
   useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const response = await fetch(`http://localhost:3002/api/messages/${room}`);
+        const messages = await response.json();
+        setMessageList(messages);
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      }
+    };
+
+    fetchMessages();
+  }, [room]);
+
+  useEffect(() => {
     setMessageList([]);
 
     socket.on("previous_messages", (messages) => {

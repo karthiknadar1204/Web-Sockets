@@ -49,8 +49,13 @@ io.on('connection', (socket) => {
                 });
                 console.log('Created new room:', roomDoc);
             } else {
-                if (role === 'advocate' && roomDoc.hasAdvocate) {
-                    socket.emit('room_status', { hasAdvocate: true });
+                const hasActiveAdvocate = roomDoc.participants.some(p => p.role === 'advocate');
+                
+                if (role === 'advocate' && hasActiveAdvocate) {
+                    socket.emit('room_status', { 
+                        hasAdvocate: true,
+                        error: "This room already has an advocate. Please join as a client." 
+                    });
                     return;
                 }
                 
@@ -84,7 +89,10 @@ io.on('connection', (socket) => {
 
             socket.emit('previous_messages', formattedMessages);
             
-            socket.emit('room_status', { hasAdvocate: roomDoc.hasAdvocate });
+            socket.emit('room_status', { 
+                hasAdvocate: roomDoc.hasAdvocate,
+                success: true 
+            });
             
             socket.to(room).emit('user_joined', {
                 username,
@@ -144,3 +152,26 @@ io.on('connection', (socket) => {
 server.listen(3002, () => {
     console.log(`server is running on port 3002`);
 })
+
+
+app.get('/api/room/:roomId', async (req, res) => {
+  try {
+    const room = await Room.findOne({ roomId: req.params.roomId });
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+    res.json(room);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/messages/:roomId', async (req, res) => {
+  try {
+    const messages = await Message.find({ room: req.params.roomId })
+      .sort({ createdAt: 1 });
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
