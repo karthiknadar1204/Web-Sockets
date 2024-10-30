@@ -143,17 +143,11 @@ function Chat({ socket, username, room, role }) {
             {messageContent.fileUrl && (
               <div className="file-attachment">
                 {messageContent.fileType?.startsWith('image/') ? (
-                  <a 
-                    href={messageContent.fileUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    <img 
-                      src={messageContent.fileUrl} 
-                      alt="attachment" 
-                      className="image-preview"
-                    />
-                  </a>
+                  <img 
+                    src={messageContent.fileUrl} 
+                    alt="attachment" 
+                    className="image-preview"
+                  />
                 ) : (
                   <a 
                     href={messageContent.fileUrl} 
